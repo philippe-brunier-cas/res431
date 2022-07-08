@@ -1,0 +1,8 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+doc/*.html
+*.Rproj
+doc/trash/*.html
+doc/07-conclusioni.Rmd

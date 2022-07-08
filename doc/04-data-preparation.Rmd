@@ -1,0 +1,167 @@
+---
+title: "Data Preparation "
+subtitle: "cas415"
+author: "pbrunier@cogne.com"
+version: 1.0 
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    css: ./custom.css
+    df_print: paged
+    gallery: no
+    highlight: default
+    html_document: null
+    lightbox: yes
+    number_sections: yes
+    self_contained: yes
+    thumbnails: no
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE,
+                      error = FALSE,
+                      fig.height = 7,
+                      fig.width = 10,
+                      collapse = TRUE,
+                      cols.print=20)
+rm(list = ls(all.names = TRUE))
+
+require(dplyr)
+require(kableExtra)
+require(readr)
+require(reticulate)
+source('~/dev/res431/R/function.R')
+```
+
+# Data Building 
+
+Il database finale per l'analisi dei dati sarà il risultato di un join delle tabelle mappate in [03-data-mapping](./03-data-mapping.html)
+
+Il dato è riassunto per odp. Pertanto, le triple di kv verranno riassunte nei seguenti termini:
+
++ valore medio
++ deviazione standard
++ numerosità : questa colonna in realtà è costante (pari a 3) per tutti gli odp.
+
+Comincio con il caricate tutte le tabelle singole
+
+```{python load_all_data}
+import pandas as pd
+import os 
+
+def MapTable(datafile,header_file):
+    header = pd.read_csv(os.path.join(os.getcwd(),'mapping',header_file),sep=';')
+    
+    df = pd.read_csv(datafile, sep=';',
+                     # dtype = header.data_type.values,
+                     )
+    
+    df = df.set_axis(header.col_name, axis=1, inplace=False)
+    
+    #drop delle colonne non interessanti
+    to_use = header[header.grab != 0].col_name
+    return df[to_use]
+
+
+data_path = '/data/res431/'
+head_path = os.path.join(data_path,'header')
+
+file_tvb = os.path.join(data_path,'dati_TVB.txt')
+file_ch = os.path.join(data_path,'dati_CH.txt')
+file_rm = os.path.join(data_path,'dati_RM.txt')
+# file_CC = 'dati_CCO.txt'
+file_rinv1 = os.path.join(data_path,'dati_RINV1.txt')
+file_rinv2 = os.path.join(data_path,'dati_RINV2.txt')
+file_G14 = os.path.join(data_path,'dati_G14.txt')
+
+
+head_ch = os.path.join(head_path,'header_CH.csv')
+head_tvb = os.path.join(head_path,'header_TVB.csv')
+head_rm = os.path.join(head_path,'header_rm.csv')
+head_G14 = os.path.join(head_path,'header_PIR-G14.csv')
+# head_cc = 'header_CCO.csv'
+head_r1 = os.path.join(head_path,'header_RINV1.csv')
+head_r2 = os.path.join(head_path,'header_RINV2.csv')
+
+
+df_ch = MapTable(file_ch,head_ch)
+df_g14 = MapTable(file_G14,head_G14)
+df_tvb = MapTable(file_tvb,head_tvb)
+df_rinv1 = MapTable(file_rinv1,head_r1)
+df_rinv2 = MapTable(file_rinv2,head_r2)
+# df_cc = MapTable(file_CC,head_cc)
+df_rm = MapTable(file_rm,head_rm)
+
+
+```
+
+Facciamo in seguito un join dei dati. 
+
+Le chimiche sulla colata
+Il resto sull'odp
+
+```{python join_dati}
+
+df = df_tvb.copy()
+
+# df = df.set_index('colata')
+
+# df_ch = df_ch.set_index('colata')
+
+features = ['C', 'S', 'P', 'Si', 'Mn',
+        'Cr', 'Ni', 'Mo', 'Cu', 'Sn', 'Al', 'V', 'Co', 'Ti', 'Nb', 'Ca', 'N2',
+        'PA', 'Cr_eq', 'Ni_eq', 'Cr_eq_over_Ni_eq']
+
+df = pd.merge(df,df_ch,on='colata')
+# df = pd.merge(df,df_cc,on='colata')
+
+df_TT = pd.merge(df_rinv1,df_rinv2,on='odp')
+
+
+df = pd.merge(df,df_TT,on='odp')
+df_rm = df_rm[['odp','rm_valori']]
+
+df = pd.merge(df,df_rm,on='odp')
+
+#setto alcune cose
+df['n_batch'] = pd.to_numeric(df.n_batch)
+
+dfg = df.groupby('odp').mean()
+dfg['kv_std'] = df.groupby('odp').std().kv_valori
+dfg['kv_N'] = df.groupby('odp').count().colata
+dfg = dfg.reset_index()
+
+```
+ordino le colonne 
+
+```{python qwerty}
+ordered_cols = ['kv_valori',
+       'C', 'S', 'P', 'Si', 'Mn', 'Cr', 'Ni', 'Mo', 'Cu', 'Sn', 'Al', 'V', 
+       'Co', 'Ti', 'Nb', 'Ca', 'N2', 'PA', 'Cr_eq', 'Ni_eq', 'Cr_eq_over_Ni_eq', 
+       'temp_media', 'min_over_1050', 'min_over_1100','peso_batch',  
+       'batch_rinv1', 'peso_rinv1','batch_rinv2', 'peso_rinv2', 'peso_batch_rinv2', 'n_batch_rinv2'
+       ]
+
+# salvo il file
+dfg = dfg[ordered_cols]
+
+```
+
+salvo come .pkl 
+
+```{python save_pickle}
+dfg.to_pickle('/data/res431/dati_res431.pkl')
+
+```
+
+salvo come .rds
+
+```{r save_rds}
+dati_res431 <- py$dfg
+write_rds(dati_res431,'/data/res431/dati_res431.rds')
+
+```

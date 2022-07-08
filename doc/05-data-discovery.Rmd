@@ -1,0 +1,158 @@
+---
+title: "Data Discovery "
+subtitle: "res431"
+author: "pbrunier@cogne.com"
+version: 1.0 
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    css: ./custom.css
+    df_print: paged
+    gallery: no
+    highlight: default
+    html_document: null
+    lightbox: yes
+    number_sections: yes
+    self_contained: yes
+    thumbnails: no
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE,
+                      error = FALSE,
+                      fig.height = 7,
+                      fig.width = 10,
+                      collapse = TRUE,
+                      cols.print=20)
+rm(list = ls(all.names = TRUE))
+require(dplyr)
+require(rlang)
+require(kableExtra)
+require(readr)
+require(ggplot2)
+require(reticulate)
+require(rpart)
+require(rpart.plot)
+require(tidyr)
+require(randomForest)
+source('~/dev/res431/R/function.R')
+```
+
+leggiamo i dati 
+
+```{r zerty}
+res431 <- read_rds('/data/res431/dati_res431.rds')
+                       
+```
+
+<!-- # Analisi della variabile risposta (Rm) -->
+
+<!-- analisi Kv -->
+
+<!-- ```{r analisi rm} -->
+<!-- pl <- ggplot(res431)+ -->
+<!--   geom_line(aes(kv_valori))+ -->
+<!--   geom_point(aes(kv_valori, color='blue'))+ -->
+<!--   # geom_smooth(aes(kv_valori),method = 'loess',se=FALSE, -->
+<!--   #             col='red',span=0.25,degree=2)+ -->
+<!--   print(pl) -->
+
+<!-- ``` -->
+
+
+<!-- # Analisi delle variabili input (chimica + carica) -->
+
+<!-- analisi chimica nel tempo -->
+
+<!-- ```{r chim_temp, results='asis'} -->
+<!-- vars <- carmet415M3 %>% -->
+<!--   select(sommaNbV:sfrido_molaggio_inox) %>% -->
+<!--   names() -->
+<!-- titles <- paste('## Andamento nel tempo della variabile ', vars) -->
+
+<!-- n <- length(vars) -->
+
+<!-- for (i in seq_len(n)) { -->
+<!--   var_i <- vars[i] -->
+<!--   title_i <- titles[i] -->
+<!--   pl <- ggplot(carmet415M3)+ -->
+<!--     geom_line(aes(index,!!sym(var_i)))+ -->
+<!--                 geom_smooth(aes(index,!!sym(var_i)),method = 'loess', se=FALSE, col='red') -->
+
+<!--               cat(title_i, '\n') -->
+<!--               print(pl) -->
+<!--               cat('<p>') -->
+<!-- }                      -->
+<!-- ``` -->
+
+# Kv contro tutti
+
+analisi dei trend del tipo x vs y 
+
+```{r correlazioni,results='asis'}
+response <- 'kv_valori'
+vars <- res431 %>% 
+  select(C:n_batch_rinv2) %>%
+  names()
+n <- length(vars)
+
+for (i in seq_len(n)) {
+  var_i <- vars[i]
+  pl <- ggplot(res431) +
+    geom_point(aes(!!sym(var_i),!!sym(response))) +
+    geom_smooth(
+      aes(!!sym(var_i),!!sym(response)),
+      color = 'magenta',
+      se = FALSE,
+      method = 'loess',
+      span=0.75,degree=2
+    ) +
+    geom_smooth(
+      aes(!!sym(var_i),!!sym(response)),
+      color = 'blue',
+      se = FALSE,
+      method = 'lm'
+    )
+  title <- paste('## Variabile: ', var_i)
+  cat(title, '\n')
+  print(pl)
+  cat('<p>') #necessario per terminare paragrafo
+}
+```
+
+# Decision Tree
+
+```{r tree}
+fm <- rpart(formula=kv_valori ~ .,
+            data = res431,
+            method = 'anova',
+            cp = 0.02)
+
+rpart.plot(fm,
+           extra=101)
+
+```
+
+<!-- # ```{r random_forest} -->
+<!-- # rf <- randomForest(formula = kv_valori ~ . , -->
+<!-- #                    data = res431, -->
+<!-- #                    ntree = 100) -->
+<!-- #  -->
+<!-- # # Variable importance plot -->
+<!-- # varImpPlot(rf) -->
+<!-- #  -->
+<!-- #  -->
+<!-- # # Plotting model -->
+<!-- # plot(rf) -->
+<!-- #  -->
+<!-- # # Importance plot -->
+<!-- # importance(rf) -->
+<!-- #  -->
+<!-- # ``` -->
+
+
+Ripeto gli stessi passaggi sul database che considera solo il valore medio di Kv per colata

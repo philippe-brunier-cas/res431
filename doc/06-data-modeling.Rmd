@@ -1,0 +1,185 @@
+---
+title: "Data Modeling"
+subtitle: "cas415"
+author: "pbrunier@cogne.com"
+version: 1.0 
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    css: ./custom.css
+    df_print: paged
+    gallery: no
+    highlight: default
+    html_document: null
+    lightbox: yes
+    number_sections: yes
+    self_contained: yes
+    thumbnails: no
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE,
+                      error = FALSE,
+                      fig.height = 7,
+                      fig.width = 10,
+                      collapse = TRUE,
+                      cols.print=20)
+rm(list = ls(all.names = TRUE))
+require(dplyr)
+require(rlang)
+require(tidyr)
+require(kableExtra)
+require(readr)
+require(ggplot2)
+require(rpart)
+require(rpart.plot)
+source('~/dev/cas415/R/function.R')
+```
+
+leggiamo i dati 
+
+```{r loading}
+carmet415M3 <- read_rds('/data/cas415/carmet415M3.rds')
+                       
+```
+
+```{r cleaning delle variabili}
+carmet415M3_model <- carmet415M3 %>% 
+  select(-c(index,colata,scheda,rm_test1,sommaNbV))
+```
+
+
+
+# Albero di regressione (variabile risposta continua)
+
+albero Rm_mean
+
+```{r albero}
+fm <- rpart(formula=rm ~ .,
+            data = carmet415M3_model,
+            method = 'anova',
+            cp = 0.02)
+```
+
+plot dell'albero 
+
+```{r plot}
+
+rpart.plot(fm,
+           extra=101)
+
+```
+
+```{r print}
+
+print(fm)
+
+```
+
+troviamo un modello lineare con le variabili indicate dall'albero considerando anche le interazioni di grado 2
+
+```{r linear model}
+fm_lm0 <- lm(rm ~ (V+Nb)^2,
+            data = carmet415M3_model)
+
+fm_lm <- lm(rm ~ (V+Nb+P+Ni+Cu)^2,
+            data = carmet415M3_model)
+
+summary(fm_lm)
+
+```
+
+testiamo il modello ad interazioni ridotte
+
+```{r  testi modello}
+
+fm_lm1 <- lm(rm ~ V+ Nb + P + Ni + Cu + V:Cu + Nb:P + Nb:Ni + Nb:Cu + Ni:P,
+            data = carmet415M3_model)
+
+
+summary(fm_lm1)
+```
+
+faccio una anova per i due modelli, con ipotesi nulla *i due modelli sono diversi*
+
+```{r anova}
+anova(fm_lm1,fm_lm,test='F')
+
+```
+
+verifico il modello
+
+```{r verifica}
+par(mfrow=c(2,2))
+plot(fm_lm1)
+par(mfrow=c(1,1))
+```
+
+plot residui VS singole variabili
+
+```{r residui}
+carmet415M3_model %>% 
+  select(V,Nb,P,Ni,Cu) %>% 
+  mutate(res=residuals(fm_lm1)) %>% 
+  pairs()
+  
+```
+griglia dei valori
+
+```{r grid}
+
+d <- carmet415M3
+
+d <- expand_grid(
+V = seq(min(d$V),max(d$V),length=4),
+Nb = seq(min(d$Nb),max(d$Nb),length=10),
+P = seq(min(d$P),max(d$P),length=4),
+Ni = seq(min(d$Ni),max(d$Ni),length=10),
+Cu = seq(min(d$Cu),max(d$Cu),length=4))
+
+
+d_prd <- predict(fm_lm1,d,interval='prediction') %>% 
+  as_tibble()
+
+d <- d %>% bind_cols(d_prd)
+
+```
+
+plot variabili principali
+
+```{r dcasc}
+
+ggplot(d, aes(Nb, fit)) +
+  geom_smooth(aes(group =factor(P), color=factor(P)), method='lm', se=F) +
+  geom_point(aes(color=factor(P))) + 
+  facet_grid(Cu~V, labeller = label_both)
+
+```
+
+Test per Vincenzo
+
+```{r grid2}
+
+d <- carmet415M3
+
+d <- tibble(
+V = 0.10,
+Nb = 0.03,
+P = mean(d$P),
+Ni = 4.5,
+Cu = mean(d$Cu))
+
+
+d_prd <- predict(fm_lm1,d,interval='prediction') %>% 
+  as_tibble()
+
+d <- d %>% bind_cols(d_prd)
+
+d <- d %>% mutate(test=fit-970)
+
+d %>%  filter(abs(test)==min(abs(test)))
+```
