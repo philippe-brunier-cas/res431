@@ -36,5 +36,3 @@ rm(list = ls(all.names = TRUE))
 # Processo
 
 I risultati di resilienza che stiamo ottenendo sul 431/5 sono instabili e spesso fuori specifica (sotto il limite minimo di 50 J). In caso di schede fuori specifica, la scheda viene ritrattata. 
-
-
