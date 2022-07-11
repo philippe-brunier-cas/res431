@@ -1,6 +1,6 @@
 ---
 title: "Data Preparation "
-subtitle: "cas415"
+subtitle: "res431"
 author: "pbrunier@cogne.com"
 version: 1.0 
 date: "`r Sys.Date()`"
@@ -130,6 +130,15 @@ df = pd.merge(df,df_rm,on='odp')
 #setto alcune cose
 df['n_batch'] = pd.to_numeric(df.n_batch)
 
+features = ['dim', 'lotto_contr', 'odp', 'n_risul', 'kv_valori', 'c_over_p',
+       'l_over_t', 'colata','colata_aod', 'ese', 'data_ins', 'anno', 'sk', 
+       'temp_media','temp_sup', 'temp_inf', 'min_over_1050', 'min_over_1100',
+       'anno_colaggio', 'peso_batch', 'n_batch', 'C', 'S', 'P',
+       'Si', 'Mn', 'Cr', 'Ni', 'Mo', 'Cu', 'Sn', 'Al', 'V', 'Co', 'Ti', 'Nb',
+       'Ca', 'N2', 'PA', 'Cr_eq', 'Ni_eq', 'Cr_eq_over_Ni_eq', 'batch_rinv1',
+       'forno_rinv1', 'peso_rinv1', 'batch_rinv2', 'forno_rinv2', 'peso_rinv2',
+       'peso_batch_rinv2', 'n_batch_rinv2', 'rm_valori']
+
 dfg = df.groupby('odp').mean()
 dfg['kv_std'] = df.groupby('odp').std().kv_valori
 dfg['kv_N'] = df.groupby('odp').count().colata
@@ -149,12 +158,15 @@ ordered_cols = ['kv_valori',
 # salvo il file
 dfg = dfg[ordered_cols]
 
+
+
 ```
 
 salvo come .pkl 
 
 ```{python save_pickle}
-dfg.to_pickle('/data/res431/dati_res431.pkl')
+dfg.to_pickle('/data/res431/res431_grouped.pkl')
+df.to_pickle('/data/res431/res431.pkl')
 
 ```
 
@@ -162,6 +174,9 @@ salvo come .rds
 
 ```{r save_rds}
 dati_res431 <- py$dfg
-write_rds(dati_res431,'/data/res431/dati_res431.rds')
+write_rds(dati_res431,'/data/res431/res431_grouped.rds')
+
+res431 <- py$df
+write_rds(res431,'/data/res431/res431.rds')
 
 ```
