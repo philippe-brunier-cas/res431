@@ -139,15 +139,18 @@ features = ['dim', 'lotto_contr', 'odp', 'n_risul', 'kv_valori', 'c_over_p',
        'forno_rinv1', 'peso_rinv1', 'batch_rinv2', 'forno_rinv2', 'peso_rinv2',
        'peso_batch_rinv2', 'n_batch_rinv2', 'rm_valori']
 
+
+
+```
+ordino le colonne 
+
+```{python grouped_by_triple}
+
 dfg = df.groupby('odp').mean()
 dfg['kv_std'] = df.groupby('odp').std().kv_valori
 dfg['kv_N'] = df.groupby('odp').count().colata
 dfg = dfg.reset_index()
 
-```
-ordino le colonne 
-
-```{python qwerty}
 ordered_cols = ['kv_valori',
        'C', 'S', 'P', 'Si', 'Mn', 'Cr', 'Ni', 'Mo', 'Cu', 'Sn', 'Al', 'V', 
        'Co', 'Ti', 'Nb', 'Ca', 'N2', 'PA', 'Cr_eq', 'Ni_eq', 'Cr_eq_over_Ni_eq', 
