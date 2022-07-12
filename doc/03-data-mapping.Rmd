@@ -42,11 +42,11 @@ source('~/dev/res431/R/function.R')
 I file utilizati in questo progetto sono: 
 
 1. dati_CH.txt
-1. dati_TVB.txt
+1. dati_TVBv2.txt
 1. dati_G14.txt
 1. datiRM.txt
 1. dati_RINV1.txt
-1. dati_RINV2.txt
+1. dati_RINV2v2.txt
 
 ## dati_CH 
 
@@ -141,11 +141,11 @@ Il file è composto da `r nrow(header)` colonne, con le seguenti specifiche
 cas_kable(header, caption='header_rinv1')
 ```
 
-## dati_RINV2
+## dati_RINV2v2
 
 ```{r head_rinv2, include = TRUE}
 
-header <- read_delim('/data/res431/header/header_RINV2.csv', delim=';', col_type=cols())
+header <- read_delim('/data/res431/header/header_RINV2v2.csv', delim=';', col_type=cols())
 
 header <- filter(header, grab>0)
 header <- header[-ncol(header)]
