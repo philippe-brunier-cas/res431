@@ -58,7 +58,7 @@ analisi dei trend del tipo x vs y
 ```{r correlazioni,results='asis'}
 response <- 'kv_valori'
 vars <- res431 %>% 
-  select(temp_media:rm_valori) %>%
+  select(temp_media:T_pirG14) %>%
   names()
 n <- length(vars)
 
@@ -90,39 +90,45 @@ for (i in seq_len(n)) {
 
 ```{r tree}
 dati_tree <- res431 %>% 
-  select(temp_media:n_batch_rinv2) 
+  select(temp_media:T_pirG14) 
 
 kv <- res431$kv_valori
 
+
+
 dati_tree <- cbind(kv,dati_tree)
+
+
 
 
 fm <- rpart(formula=kv ~ . ,
             data = dati_tree,
             method = 'anova',
-            cp = 0.02)
+            cp = 0.03)
 
 rpart.plot(fm,
            extra=101)
 
 ```
 
-<!-- # ```{r random_forest} -->
-<!-- # rf <- randomForest(formula = kv_valori ~ . , -->
-<!-- #                    data = res431, -->
-<!-- #                    ntree = 100) -->
-<!-- #  -->
-<!-- # # Variable importance plot -->
-<!-- # varImpPlot(rf) -->
-<!-- #  -->
-<!-- #  -->
-<!-- # # Plotting model -->
-<!-- # plot(rf) -->
-<!-- #  -->
-<!-- # # Importance plot -->
-<!-- # importance(rf) -->
-<!-- #  -->
-<!-- # ``` -->
+# RandomForest (odp)
+
+
+```{r random_forest}
+
+# dati_tree <- subset(dati_tree, !is.nan(dati_tree[[1]]))
+dati_tree <- na.omit(dati_tree)
+rf <- randomForest(formula = kv ~ . ,
+                 data = dati_tree,
+                 ntree = 500)
+
+# Variable importance plot
+varImpPlot(rf, main='Variable importance Plot')
+# Plotting model
+plot(rf,main='convergence plot')
+# Importance plot
+importance(rf)
+```
 
 
 # Analisi per triple
@@ -134,14 +140,93 @@ res431 <- read_rds('/data/res431/res431_grouped.rds')
                        
 ```
 
-# Kv contro tutti (grouped)
+# Kv contro tutti (triple)
 
 analisi dei trend del tipo x vs y 
 
 ```{r correlazioni tripla,results='asis'}
 response <- 'kv_valori'
 vars <- res431 %>% 
-  select(C:n_batch_rinv2) %>%
+  select(temp_media:T_pirG14) %>%
+  names()
+n <- length(vars)
+
+for (i in seq_len(n)) {
+  var_i <- vars[i]
+  pl <- ggplot(res431) +
+    geom_point(aes(!!sym(var_i),!!sym(response))) +
+    geom_smooth(
+      aes(!!sym(var_i),!!sym(response)),
+      color = 'magenta',
+      se = FALSE,
+      method = 'loess',
+      span=0.75,degree=2
+    ) +
+    geom_smooth(
+      aes(!!sym(var_i),!!sym(response)),
+      color = 'blue',
+      se = FALSE,
+      method = 'lm'
+    )
+  title <- paste('### Variabile: ', var_i)
+  cat(title, '\n')
+  print(pl)
+  cat('<p>') #necessario per terminare paragrafo
+}
+```
+
+# Decision Tree (triple)
+
+```{r tree tripla}
+fm <- rpart(formula=kv_valori ~ .,
+            data = res431,
+            method = 'anova',
+            cp = 0.02)
+
+rpart.plot(fm,
+           extra=101)
+
+```
+
+# RandomForest (tripla)
+
+
+```{r random_forest_triple}
+
+dati_tree <- res431 %>% 
+  select(temp_media:T_pirG14) 
+
+kv <- res431$kv_valori
+
+dati_tree <- cbind(kv,dati_tree)
+
+# dati_tree <- subset(dati_tree, !is.nan(dati_tree[[1]]))
+dati_tree <- na.omit(dati_tree)
+rf <- randomForest(formula = kv ~ . ,
+                 data = dati_tree,
+                 ntree = 500)
+
+# Variable importance plot
+varImpPlot(rf, main='Variable importance Plot')
+# Plotting model
+plot(rf,main='convergence plot')
+# Importance plot
+importance(rf)
+```
+
+# analisi per colata 
+
+leggiamo i dati 
+
+```{r load_dati_colate}
+res431 <- read_rds('/data/res431/res431_colate.rds')
+                       
+```
+
+```{r correlazioni colate,results='asis'}
+response <- 'kv_valori'
+vars <- res431 %>% 
+  select(temp_media:T_pirG14) %>%
   names()
 n <- length(vars)
 
@@ -169,15 +254,33 @@ for (i in seq_len(n)) {
 }
 ```
 
-# Decision Tree (grouped)
+# Decision Tree (colate)
 
-```{r tree tripla}
-fm <- rpart(formula=kv_valori ~ .,
-            data = res431,
-            method = 'anova',
-            cp = 0.02)
+I dati sono troppo pochi per un decision tree
 
-rpart.plot(fm,
-           extra=101)
+# Random Forest (colate)
+
+```{r tree colate}
+
+
+
+dati_tree <- res431 %>% 
+  select(temp_media:T_pirG14) 
+
+kv <- res431$kv_valori
+
+dati_tree <- cbind(kv,dati_tree)
+
+dati_tree <- na.omit(dati_tree)
+rf <- randomForest(formula = kv ~ . ,
+                 data = dati_tree,
+                 ntree = 500)
+
+# Variable importance plot
+varImpPlot(rf, main='Variable importance Plot')
+# Plotting model
+plot(rf,main='convergence plot')
+# Importance plot
+importance(rf)
 
 ```
