@@ -56,9 +56,15 @@ import os
 def MapTable(datafile,header_file):
     header = pd.read_csv(header_file,sep=';')
     
-    df = pd.read_csv(datafile, sep=';',
+    try:
+      df = pd.read_csv(datafile, sep=';',encoding = 'utf-8',
                      # dtype = header.data_type.values,
                      )
+    except UnicodeDecodeError:
+      df = pd.read_csv(datafile, sep=';',encoding = 'cp1252',
+                     # dtype = header.data_type.values,
+                     )
+      
     
     df = df.set_axis(header.col_name, axis=1, inplace=False)
     
@@ -160,7 +166,7 @@ ordered_columns = ['dim', 'lotto_contr', 'odp', 'n_risul', 'c_over_p',
        'Co', 'Ti', 'Nb','Ca', 'N2', 
        'PA', 'Cr_eq', 'Ni_eq', 'Cr_eq_over_Ni_eq',
        'forno_rinv1', 'peso_rinv1',
-       'forno_rinv2','peso_batch_rinv2','T_pirG14']
+       'forno_rinv2','peso_batch_rinv2','T_pirG14','dt_LAM_TT1','dt_TT1_TT2']
 # ordered_columns = df.columns
 df = df[ordered_columns]
 

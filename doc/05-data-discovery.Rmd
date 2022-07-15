@@ -45,10 +45,97 @@ source('~/dev/res431/R/function.R')
 # Analisi per odp
 
 leggiamo i dati 
+(tolgo le due colate con Ni alto)
+
 
 ```{r zerty}
 res431 <- read_rds('/data/res431/res431.rds')
-                       
+# res431 <- filter(res431, Ni<2.0)
+
+#ordino per data
+res431 <- res431 %>%
+  mutate(data_ins=as.Date(data_ins, format = "%d/%m/%Y"))
+
+res431 <- res431[order(res431$data_ins, decreasing = FALSE), ]
+res431 <- cbind(ID = 1:nrow(res431), res431)
+
+        
+```
+
+# Analisi dei trend
+
+```{r trend,results='asis'}
+
+
+
+vars <- res431 %>% 
+  select(rm_valori:kv_valori) %>%
+  names()
+n <- length(vars)
+
+for (i in seq_len(n)) {
+  var_i <- vars[i]
+  pl <- ggplot(res431) +
+    geom_point(aes(ID,!!sym(var_i))) +
+    geom_smooth(
+      aes(ID,!!sym(var_i)),
+      color = 'magenta',
+      se = FALSE,
+      method = 'loess',
+      span=0.25, degree=2
+    ) +
+    geom_smooth(
+      aes(ID,!!sym(var_i)),
+      color = 'blue',
+      se = FALSE,
+      method = 'lm'
+    )
+  title <- paste('## Variabile: ', var_i)
+  cat(title, '\n')
+  print(pl)
+  cat('<p>') #necessario per terminare paragrafo
+}
+
+
+
+pl2 <- ggplot(res431) +
+  geom_point(aes(data_ins,kv_valori)) +
+  geom_smooth(
+    aes(data_ins,kv_valori),
+    color = 'magenta',
+    se = FALSE,
+    method = 'loess',
+    span=0.75, degree=2
+  ) +
+  geom_smooth(
+    aes(data_ins,kv_valori),
+    color = 'blue',
+    se = FALSE,
+    method = 'lm'
+  )
+title <- paste('## Variabile: ', 'kv')
+cat(title, '\n')
+print(pl2)
+
+pl2 <- ggplot(res431) +
+  geom_point(aes(colata_aod,kv_valori)) +
+  geom_smooth(
+    aes(colata_aod,kv_valori),
+    color = 'magenta',
+    se = FALSE,
+    method = 'loess',
+    span=0.75, degree=2
+  ) +
+  geom_smooth(
+    aes(colata_aod,kv_valori),
+    color = 'blue',
+    se = FALSE,
+    method = 'lm'
+  )
+title <- paste('## Variabile: ', 'kv')
+cat(title, '\n')
+print(pl2)
+
 ```
 
 # Kv contro tutti (odp)
@@ -78,7 +165,8 @@ for (i in seq_len(n)) {
       color = 'blue',
       se = FALSE,
       method = 'lm'
-    )
+    ) +
+    geom_step(aes(index, lower_limit),color='gray',alpha=.5)
   title <- paste('## Variabile: ', var_i)
   cat(title, '\n')
   print(pl)
@@ -137,7 +225,7 @@ leggiamo i dati
 
 ```{r load_dati_tripla}
 res431 <- read_rds('/data/res431/res431_grouped.rds')
-                       
+# res431 <- filter(res431, Ni<2.0)
 ```
 
 # Kv contro tutti (triple)
