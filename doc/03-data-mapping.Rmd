@@ -42,7 +42,7 @@ source('~/dev/res431/R/function.R')
 I file utilizati in questo progetto sono: 
 
 1. dati_CH.txt
-1. dati_TVBv2.txt
+1. dati_KV_TVB.txt
 1. dati_G14.txt
 1. datiRM.txt
 1. dati_RINV1.txt
@@ -68,13 +68,13 @@ cas_kable(header, caption='header_CH')
 ```
 
 
-## dati_TVB
+## dati_KV_TVB
 
-Il file contiene i dati delle prove meccaniche (Kv, trazioni) per scheda. 
+Il file contiene i dati delle prove meccaniche (Kv, trazioni) per scheda + dati LAM. 
 
 ```{r head_tvb, include = TRUE}
 
-header <- read_delim('/data/res431/header/header_TVB.csv', delim=';', col_type=cols())
+header <- read_delim('/data/res431/header/header_KVTVB.csv', delim=';', col_type=cols())
 
 header <- filter(header, grab>0)
 header <- header[-ncol(header)]
@@ -85,43 +85,6 @@ Il file è composto da `r nrow(header)` colonne, con le seguenti specifiche
 
 ```{r plot_tabella_tvb, include = TRUE}
 cas_kable(header, caption='header_TVB')
-```
-
-
-## dati_G14
-
-```{r head_g14, include = TRUE}
-
-header <- read_delim('/data/res431/header/header_PIR-G14.csv', delim=';', col_type=cols())
-
-header <- filter(header, grab>0)
-header <- header[-ncol(header)]
-
-```
-
-Il file è composto da `r nrow(header)` colonne, con le seguenti specifiche
-
-```{r plot_tabella_g14, include = TRUE}
-cas_kable(header, caption='header_G14')
-```
-
-## datiRM
-
-questa tabella di fatto è una copia di tabella TVB, con  però i dati di rm. 
-
-```{r head_rm, include = TRUE}
-
-header <- read_delim('/data/res431/header/header_rm.csv', delim=';', col_type=cols())
-
-header <- filter(header, grab>0)
-header <- header[-ncol(header)]
-
-```
-
-Il file è composto da `r nrow(header)` colonne, con le seguenti specifiche
-
-```{r plot_tabella_rm, include = TRUE}
-cas_kable(header, caption='header_rm')
 ```
 
 ## dati_RINV1

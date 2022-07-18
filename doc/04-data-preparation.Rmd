@@ -52,6 +52,7 @@ Comincio con il caricate tutte le tabelle singole
 ```{python load_all_data}
 import pandas as pd
 import os 
+import numpy as np
 
 def MapTable(datafile,header_file):
     header = pd.read_csv(header_file,sep=';')
@@ -76,31 +77,28 @@ def MapTable(datafile,header_file):
 data_path = '/data/res431/'
 head_path = os.path.join(data_path,'header')
 
-file_tvb = os.path.join(data_path,'dati_TVBv2.txt')
+file_tvb = os.path.join(data_path,'dati_KV_TVB.txt')
 file_ch = os.path.join(data_path,'dati_CH.txt')
-file_rm = os.path.join(data_path,'dati_RM.txt')
+# file_rm = os.path.join(data_path,'dati_RM.txt')
 # file_CC = 'dati_CCO.txt'
 file_rinv1 = os.path.join(data_path,'dati_RINV1.txt')
 file_rinv2 = os.path.join(data_path,'dati_RINV2.txt')
-file_G14 = os.path.join(data_path,'dati_G14.txt')
 
 
 head_ch = os.path.join(head_path,'header_CH.csv')
-head_tvb = os.path.join(head_path,'header_TVB.csv')
-head_rm = os.path.join(head_path,'header_rm.csv')
-head_G14 = os.path.join(head_path,'header_PIR-G14.csv')
+head_tvb = os.path.join(head_path,'header_KVTVB.csv')
+# head_rm = os.path.join(head_path,'header_rm.csv')
 # head_cc = 'header_CCO.csv'
 head_r1 = os.path.join(head_path,'header_RINV1.csv')
 head_r2 = os.path.join(head_path,'header_RINV2.csv')
 
 
 df_ch = MapTable(file_ch,head_ch)
-df_g14 = MapTable(file_G14,head_G14)
 df_tvb = MapTable(file_tvb,head_tvb)
 df_rinv1 = MapTable(file_rinv1,head_r1)
 df_rinv2 = MapTable(file_rinv2,head_r2)
 # df_cc = MapTable(file_CC,head_cc)
-df_rm = MapTable(file_rm,head_rm)
+# df_rm = MapTable(file_rm,head_rm)
 
 
 ```
@@ -112,117 +110,98 @@ Il resto sull'odp
 
 La base dati iniziale è quella del TVB, in quanto contiene già le triple di Kv ripetute per l'odp di riferimento. Così facendo, ho la possibilità di aggangiare i dati sull'odp in modo da 'ripetere' i dati.
 
-```{python join_dati}
-import numpy as np
-
+```{python join_all_data}
 df = df_tvb.copy()
+df_TT = pd.merge(df_rinv1,df_rinv2,on ='odp')
 
-# df = df.set_index('colata')
+print('TT contiene i dati relativi a %d odp' %(len(np.unique(df_TT.odp)))
+print('LAM contiene i dati relativi a %d odp' %(len(np.unique(df_tvb.odp))))
+print('ACC contiene i dati relativi a %d colate' %(len(np.unique(df_ch.colata)))
 
-# df_ch = df_ch.set_index('colata')
-
-features = ['C', 'S', 'P', 'Si', 'Mn',
-        'Cr', 'Ni', 'Mo', 'Cu', 'Sn', 'Al', 'V', 'Co', 'Ti', 'Nb', 'Ca', 'N2',
-        'PA', 'Cr_eq', 'Ni_eq', 'Cr_eq_over_Ni_eq']
+# print('colate TVB')
+# colate_tvb = np.unique(df_tvb.colata)
+# for cc in colate_tvb:
+#   print('\t- %s' %cc)
+#   
+# print('colate ACC')
+# colate_ch = np.unique(df_ch.colata)
+# for cc in colate_ch:
+#   print('\t- %s' %cc)
 
 df = pd.merge(df,df_ch,on='colata')
 # df = pd.merge(df,df_cc,on='colata')
-df_TT = pd.merge(df_rinv1,df_rinv2,on ='odp')
-
-dfpir = df_g14.groupby('sk').mean().T_pirG14
-dfpir = dfpir.reset_index()
-df = pd.merge(df,dfpir,on='sk')
-
 df = pd.merge(df,df_TT,on='odp')
-df_rm = df_rm[['odp','rm_valori']]
-
-df = pd.merge(df,df_rm,on='odp')
 
 #setto alcune cose
-df['n_batch'] = pd.to_numeric(df.n_batch)
+# res431 <- res431 %>%
+#   mutate(data_ins=as.Date(data_ins, format = "%d/%m/%Y"))
 
-# features = ['dim', 'lotto_contr', 'odp', 'n_risul', 'c_over_p',
-#        'l_over_t', 'colata', 'ese', 'data_ins', 'anno', 'sk','kv_valori', 'temp_media',
-#        'temp_sup', 'temp_inf', 'min_over_1050', 'min_over_1100',
-#        'C', 'S', 'P','Si', 'Mn', 'Cr', 'Ni', 'Mo', 'Cu', 'Sn', 'Al', 'V', 'Co', 'Ti', 'Nb',
-#        'Ca', 'N2', 'PA', 'Cr_eq', 'Ni_eq', 'Cr_eq_over_Ni_eq', 
-#        'peso_rinv1', 'peso_rinv2']
-       
-# df = df[features]
 
-# peso_barra = np.pi*0.047**2*4.5*7900  #stima del peso di una barra
-
-# df['numero_barre_rinv1'] = round(df.peso_rinv1/peso_barra,0)
-
-# df['numero_fasci_rinv2'] = round(df.peso_rinv2/df.peso_batch_rinv2)
 
 # ordino le features
 
-ordered_columns = ['dim', 'lotto_contr', 'odp', 'n_risul', 'c_over_p',
-       'l_over_t', 'colata', 'ese', 'data_ins','anno_colaggio', 'colata_aod', 'sk',
-        'rm_valori','kv_valori', 
-       'temp_media','temp_sup', 'temp_inf', 'min_over_1050', 'min_over_1100', 
-       'C', 'S', 'P','Si', 'Mn', 'Cr', 'Ni', 'Mo', 'Cu', 'Sn', 'Al', 'V', 
-       'Co', 'Ti', 'Nb','Ca', 'N2', 
-       'PA', 'Cr_eq', 'Ni_eq', 'Cr_eq_over_Ni_eq',
-       'forno_rinv1', 'peso_rinv1',
-       'forno_rinv2','peso_batch_rinv2','T_pirG14','dt_LAM_TT1','dt_TT1_TT2']
+ordered_columns = ['data_ins', 'anno','marca', 'odp','sk','colata', 'colata_aod',
+       'kv',  'T_media', 'min_1050', 'min_1100', 'T_G14', 'C',
+       'S', 'P', 'Si', 'Mn', 'Cr', 'Ni', 'Mo', 'Cu', 'Sn', 'Al', 'V', 'Co',
+       'Ti', 'Nb', 'Ca', 'N2',
+       'peso_rinv1', 'peso_batch_rinv2',
+        'batch_rinv1','batch_rinv2','forno_rinv1','forno_rinv2']
 # ordered_columns = df.columns
 df = df[ordered_columns]
 
 ```
-ordino le colonne 
+<!-- ordino le colonne -->
 
-```{python grouped_by_triple}
+<!-- ```{python grouped_by_triple} -->
 
-dfg = df.groupby('odp').mean()
-dfg['kv_std'] = df.groupby('odp').std().kv_valori
-dfg['kv_N'] = df.groupby('odp').count().colata
-dfg = dfg.reset_index()
+<!-- dfg = df.groupby('odp').mean() -->
+<!-- dfg['kv_std'] = df.groupby('odp').std().kv_valori -->
+<!-- dfg['kv_N'] = df.groupby('odp').count().colata -->
+<!-- dfg = dfg.reset_index() -->
 
-ordered_cols = ['kv_valori',
-       'temp_media','temp_sup', 'temp_inf', 'min_over_1050', 'min_over_1100', 
-       'C', 'S', 'P','Si', 'Mn', 'Cr', 'Ni', 'Mo', 'Cu', 'Sn', 'Al', 'V', 
-       'Co', 'Ti', 'Nb','Ca', 'N2', 
-       'PA', 'Cr_eq', 'Ni_eq', 'Cr_eq_over_Ni_eq',
-       'peso_rinv1','peso_batch_rinv2','T_pirG14']
+<!-- ordered_cols = ['kv_valori', -->
+<!--        'temp_media','temp_sup', 'temp_inf', 'min_over_1050', 'min_over_1100', -->
+<!--        'C', 'S', 'P','Si', 'Mn', 'Cr', 'Ni', 'Mo', 'Cu', 'Sn', 'Al', 'V', -->
+<!--        'Co', 'Ti', 'Nb','Ca', 'N2', -->
+<!--        'PA', 'Cr_eq', 'Ni_eq', 'Cr_eq_over_Ni_eq', -->
+<!--        'peso_rinv1','peso_batch_rinv2','T_pirG14'] -->
 
-# salvo il file
-dfg = dfg[ordered_cols]
-
-
-
-```
-raggruppo per colata
-```{python df_colate}
-
-dfc = df.groupby('colata').mean()
-
-dfc['kv_stddev'] = df.groupby('colata').std().kv_valori
-dfc['kv_ncount'] = df.groupby('colata').count().kv_valori
+<!-- # salvo il file -->
+<!-- dfg = dfg[ordered_cols] -->
 
 
-```
+
+<!-- ``` -->
+<!-- raggruppo per colata -->
+<!-- ```{python df_colate} -->
+
+<!-- dfc = df.groupby('colata').mean() -->
+
+<!-- dfc['kv_stddev'] = df.groupby('colata').std().kv_valori -->
+<!-- dfc['kv_ncount'] = df.groupby('colata').count().kv_valori -->
+
+
+<!-- ``` -->
 
 salvo come .pkl 
 
 ```{python save_pickle}
-dfg.to_pickle('/data/res431/res431_grouped.pkl')
+# dfg.to_pickle('/data/res431/res431_grouped.pkl')
 df.to_pickle('/data/res431/res431.pkl')
-dfc.to_pickle('/data/res431/res431_colate.pkl')
+# dfc.to_pickle('/data/res431/res431_colate.pkl')
 
 ```
 
 salvo come .rds
 
 ```{r save_rds}
-dati_res431 <- py$dfg
-write_rds(dati_res431,'/data/res431/res431_grouped.rds')
+# dati_res431 <- py$dfg
+# write_rds(dati_res431,'/data/res431/res431_grouped.rds')
 
 res431 <- py$df
 write_rds(res431,'/data/res431/res431.rds')
 
-res_colate <- py$dfc
-write_rds(res_colate,'/data/res431/res431_colate.rds')
+# res_colate <- py$dfc
+# write_rds(res_colate,'/data/res431/res431_colate.rds')
 
 ```

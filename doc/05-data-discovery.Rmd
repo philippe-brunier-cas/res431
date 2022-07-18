@@ -47,68 +47,80 @@ source('~/dev/res431/R/function.R')
 leggiamo i dati 
 (tolgo le due colate con Ni alto)
 
+```{python load_dati}
 
-```{r zerty}
-res431 <- read_rds('/data/res431/res431.rds')
-# res431 <- filter(res431, Ni<2.0)
+import pandas as pd
 
-#ordino per data
-res431 <- res431 %>%
-  mutate(data_ins=as.Date(data_ins, format = "%d/%m/%Y"))
+df = pd.read_pickle('/data/res431/res431.pkl')
 
-res431 <- res431[order(res431$data_ins, decreasing = FALSE), ]
-res431 <- cbind(ID = 1:nrow(res431), res431)
+df = df[df.Ni < 2].reset_index()
+df = df.drop('index',axis=1)
 
-        
+df = df[df.T_G14 > 0].reset_index()
+df = df.drop('index',axis=1)
+
+# df = df[df.min_1050 != 'N.D.'].reset_index()
+# df = df.drop('index',axis=1)
+# 
+# df = df[df.min_1100 != 'N.D.'].reset_index()
+# df['min_1100'] = pd.to_numeric(df.min_1100)
+
 ```
+
+<!-- # ```{r aggiungo_ID} -->
+<!-- # res431 <- read_rds('/data/res431/res431.rds') -->
+<!-- # # res431 <- filter(res431, Ni<2.0) -->
+<!-- #  -->
+<!-- # #ordino per data -->
+<!-- #  -->
+<!-- # res431 <- res431[order(res431$data_ins, decreasing = FALSE), ] -->
+<!-- # res431 <- cbind(ID = 1:nrow(res431), res431) -->
+<!-- #  -->
+<!-- #          -->
+<!-- # ``` -->
 
 # Analisi dei trend
 
 ```{r trend,results='asis'}
 
+res431 <- py$df
+res431$min_1050 <- as.numeric(as.character(res431$min_1050))
+res431$min_1100 <- as.numeric(as.character(res431$min_1100))
 
+response <- 'kv'
 
-vars <- res431 %>% 
-  select(rm_valori:kv_valori) %>%
-  names()
-n <- length(vars)
-
-for (i in seq_len(n)) {
-  var_i <- vars[i]
-  pl <- ggplot(res431) +
-    geom_point(aes(ID,!!sym(var_i))) +
-    geom_smooth(
-      aes(ID,!!sym(var_i)),
-      color = 'magenta',
-      se = FALSE,
-      method = 'loess',
-      span=0.25, degree=2
-    ) +
-    geom_smooth(
-      aes(ID,!!sym(var_i)),
-      color = 'blue',
-      se = FALSE,
-      method = 'lm'
-    )
-  title <- paste('## Variabile: ', var_i)
-  cat(title, '\n')
-  print(pl)
-  cat('<p>') #necessario per terminare paragrafo
-}
+# pl <- ggplot(res431) +
+#   geom_point(aes(ID,kv)) +
+#   geom_smooth(
+#     aes(ID,kv),
+#     color = 'magenta',
+#     se = FALSE,
+#     method = 'loess',
+#     span=0.75, degree=2
+#   ) +
+#   geom_smooth(
+#     aes(ID,kv),
+#     color = 'blue',
+#     se = FALSE,
+#     method = 'lm'
+#   )
+# title <- paste('## Variabile: ', 'kv')
+# cat(title, '\n')
+# print(pl)
 
 
 
 pl2 <- ggplot(res431) +
-  geom_point(aes(data_ins,kv_valori)) +
+  geom_point(aes(data_ins,kv)) +
   geom_smooth(
-    aes(data_ins,kv_valori),
+    aes(data_ins,kv),
     color = 'magenta',
     se = FALSE,
     method = 'loess',
     span=0.75, degree=2
   ) +
   geom_smooth(
-    aes(data_ins,kv_valori),
+    aes(data_ins,kv),
     color = 'blue',
     se = FALSE,
     method = 'lm'
@@ -118,16 +130,16 @@ cat(title, '\n')
 print(pl2)
 
 pl2 <- ggplot(res431) +
-  geom_point(aes(colata_aod,kv_valori)) +
+  geom_point(aes(colata_aod,kv)) +
+  # geom_smooth(
+  #   aes(colata_aod,kv),
+  #   color = 'magenta',
+  #   se = FALSE,
+  #   method = 'loess',
+  #   span=0.75, degree=2
+  # ) +
   geom_smooth(
-    aes(colata_aod,kv_valori),
-    color = 'magenta',
-    se = FALSE,
-    method = 'loess',
-    span=0.75, degree=2
-  ) +
-  geom_smooth(
-    aes(colata_aod,kv_valori),
+    aes(colata_aod,kv),
     color = 'blue',
     se = FALSE,
     method = 'lm'
@@ -143,9 +155,9 @@ print(pl2)
 analisi dei trend del tipo x vs y 
 
 ```{r correlazioni,results='asis'}
-response <- 'kv_valori'
+response <- 'kv'
 vars <- res431 %>% 
-  select(temp_media:T_pirG14) %>%
+  select(T_media:forno_rinv2) %>%
   names()
 n <- length(vars)
 
@@ -158,15 +170,15 @@ for (i in seq_len(n)) {
       color = 'magenta',
       se = FALSE,
       method = 'loess',
-      span=0.75,degree=2
+      span=0.9,degree=2
     ) +
     geom_smooth(
       aes(!!sym(var_i),!!sym(response)),
       color = 'blue',
       se = FALSE,
       method = 'lm'
-    ) +
-    geom_step(aes(index, lower_limit),color='gray',alpha=.5)
+    )
+    # geom_step(aes(index, lower_limit),color='gray',alpha=.5)
   title <- paste('## Variabile: ', var_i)
   cat(title, '\n')
   print(pl)
@@ -178,21 +190,14 @@ for (i in seq_len(n)) {
 
 ```{r tree}
 dati_tree <- res431 %>% 
-  select(temp_media:T_pirG14) 
+  select(kv:peso_batch_rinv2) 
 
-kv <- res431$kv_valori
+# dati_tree <- cbind(kv,dati_tree)
 
-
-
-dati_tree <- cbind(kv,dati_tree)
-
-
-
-
-fm <- rpart(formula=kv ~ . ,
+fm <- rpart(formula= kv ~ . ,
             data = dati_tree,
             method = 'anova',
-            cp = 0.03)
+            cp = 0.02)
 
 rpart.plot(fm,
            extra=101)
@@ -221,11 +226,13 @@ importance(rf)
 
 # Analisi per triple
 
-leggiamo i dati 
+raggruppiamo i dati 
 
-```{r load_dati_tripla}
-res431 <- read_rds('/data/res431/res431_grouped.rds')
-# res431 <- filter(res431, Ni<2.0)
+```{python group_dati_tripla}
+dfg = df.groupby('odp').mean()
+dfg['kv_std'] = df.groupby('odp').std().kv
+dfg['kv_n'] = df.groupby('odp').count().kv
+
 ```
 
 # Kv contro tutti (triple)
@@ -233,9 +240,11 @@ res431 <- read_rds('/data/res431/res431_grouped.rds')
 analisi dei trend del tipo x vs y 
 
 ```{r correlazioni tripla,results='asis'}
-response <- 'kv_valori'
+res431 <- py$dfg
+
+response <- 'kv'
 vars <- res431 %>% 
-  select(temp_media:T_pirG14) %>%
+  select(T_media:batch_rinv2) %>%
   names()
 n <- length(vars)
 
@@ -266,8 +275,11 @@ for (i in seq_len(n)) {
 # Decision Tree (triple)
 
 ```{r tree tripla}
-fm <- rpart(formula=kv_valori ~ .,
-            data = res431,
+dati_tree <- res431 %>% 
+  select(kv:peso_batch_rinv2)
+
+fm <- rpart(formula=kv ~ .,
+            data = dati_tree,
             method = 'anova',
             cp = 0.02)
 
@@ -281,12 +293,6 @@ rpart.plot(fm,
 
 ```{r random_forest_triple}
 
-dati_tree <- res431 %>% 
-  select(temp_media:T_pirG14) 
-
-kv <- res431$kv_valori
-
-dati_tree <- cbind(kv,dati_tree)
 
 # dati_tree <- subset(dati_tree, !is.nan(dati_tree[[1]]))
 dati_tree <- na.omit(dati_tree)
@@ -302,73 +308,74 @@ plot(rf,main='convergence plot')
 importance(rf)
 ```
 
-# analisi per colata 
-
-leggiamo i dati 
-
-```{r load_dati_colate}
-res431 <- read_rds('/data/res431/res431_colate.rds')
-                       
-```
-
-```{r correlazioni colate,results='asis'}
-response <- 'kv_valori'
-vars <- res431 %>% 
-  select(temp_media:T_pirG14) %>%
-  names()
-n <- length(vars)
-
-for (i in seq_len(n)) {
-  var_i <- vars[i]
-  pl <- ggplot(res431) +
-    geom_point(aes(!!sym(var_i),!!sym(response))) +
-    geom_smooth(
-      aes(!!sym(var_i),!!sym(response)),
-      color = 'magenta',
-      se = FALSE,
-      method = 'loess',
-      span=0.75,degree=2
-    ) +
-    geom_smooth(
-      aes(!!sym(var_i),!!sym(response)),
-      color = 'blue',
-      se = FALSE,
-      method = 'lm'
-    )
-  title <- paste('## Variabile: ', var_i)
-  cat(title, '\n')
-  print(pl)
-  cat('<p>') #necessario per terminare paragrafo
-}
-```
-
-# Decision Tree (colate)
-
-I dati sono troppo pochi per un decision tree
-
-# Random Forest (colate)
-
-```{r tree colate}
 
 
+<!-- # analisi per colata -->
 
-dati_tree <- res431 %>% 
-  select(temp_media:T_pirG14) 
+<!-- raggruppiamo i dati -->
 
-kv <- res431$kv_valori
+<!-- ```{python group_dati_colata} -->
+<!-- dfg = df.groupby('colata').mean() -->
+<!-- dfg['kv_std'] = df.groupby('colata').std().kv -->
+<!-- dfg['kv_n'] = df.groupby('colata').count().kv -->
 
-dati_tree <- cbind(kv,dati_tree)
+<!-- ``` -->
 
-dati_tree <- na.omit(dati_tree)
-rf <- randomForest(formula = kv ~ . ,
-                 data = dati_tree,
-                 ntree = 500)
+<!-- ```{r correlazioni colate,results='asis'} -->
+<!-- res431 <- py$dfg -->
+<!-- response <- 'kv_valori' -->
+<!-- vars <- res431 %>% -->
+<!--   select(T_media:batch_rinv2) %>% -->
+<!--   names() -->
+<!-- n <- length(vars) -->
 
-# Variable importance plot
-varImpPlot(rf, main='Variable importance Plot')
-# Plotting model
-plot(rf,main='convergence plot')
-# Importance plot
-importance(rf)
+<!-- for (i in seq_len(n)) { -->
+<!--   var_i <- vars[i] -->
+<!--   pl <- ggplot(res431) + -->
+<!--     geom_point(aes(!!sym(var_i),!!sym(response))) + -->
+<!--     geom_smooth( -->
+<!--       aes(!!sym(var_i),!!sym(response)), -->
+<!--       color = 'magenta', -->
+<!--       se = FALSE, -->
+<!--       method = 'loess', -->
+<!--       span=0.75,degree=2 -->
+<!--     ) + -->
+<!--     geom_smooth( -->
+<!--       aes(!!sym(var_i),!!sym(response)), -->
+<!--       color = 'blue', -->
+<!--       se = FALSE, -->
+<!--       method = 'lm' -->
+<!--     ) -->
+<!--   title <- paste('## Variabile: ', var_i) -->
+<!--   cat(title, '\n') -->
+<!--   print(pl) -->
+<!--   cat('<p>') #necessario per terminare paragrafo -->
+<!-- } -->
+<!-- ``` -->
 
-```
+<!-- # Decision Tree (colate) -->
+
+<!-- I dati sono troppo pochi per un decision tree -->
+
+<!-- # Random Forest (colate) -->
+
+<!-- ```{r tree colate} -->
+
+
+
+<!-- dati_tree <- res431 %>% -->
+<!--   select(kv:peso_batch_rinv2) -->
+
+<!-- dati_tree <- na.omit(dati_tree) -->
+<!-- rf <- randomForest(formula = kv ~ . , -->
+<!--                  data = dati_tree, -->
+<!--                  ntree = 500) -->
+
+<!-- # Variable importance plot -->
+<!-- varImpPlot(rf, main='Variable importance Plot') -->
+<!-- # Plotting model -->
+<!-- plot(rf,main='convergence plot') -->
+<!-- # Importance plot -->
+<!-- importance(rf) -->
+
+<!-- ``` -->

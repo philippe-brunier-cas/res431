@@ -1,6 +1,6 @@
 ---
 title: "Data Modeling"
-subtitle: "cas415"
+subtitle: "res431"
 author: "pbrunier@cogne.com"
 version: 1.0 
 date: "`r Sys.Date()`"
@@ -37,149 +37,71 @@ require(readr)
 require(ggplot2)
 require(rpart)
 require(rpart.plot)
-source('~/dev/cas415/R/function.R')
+require(reticulate)
+source('~/dev/res431/R/function.R')
 ```
 
 leggiamo i dati 
 
 ```{r loading}
-carmet415M3 <- read_rds('/data/cas415/carmet415M3.rds')
+res431 <- read_rds('/data/res431/res431.rds')
                        
 ```
 
-```{r cleaning delle variabili}
-carmet415M3_model <- carmet415M3 %>% 
-  select(-c(index,colata,scheda,rm_test1,sommaNbV))
-```
+```{r logica_peso_batch_rinv_2}
+logical_col <- res431$peso_batch_rinv2 > 8000
 
+res431 <- cbind(res431,logical_col)
 
-
-# Albero di regressione (variabile risposta continua)
-
-albero Rm_mean
-
-```{r albero}
-fm <- rpart(formula=rm ~ .,
-            data = carmet415M3_model,
-            method = 'anova',
-            cp = 0.02)
-```
-
-plot dell'albero 
-
-```{r plot}
-
-rpart.plot(fm,
-           extra=101)
-
-```
-
-```{r print}
-
-print(fm)
 
 ```
 
 troviamo un modello lineare con le variabili indicate dall'albero considerando anche le interazioni di grado 2
 
-```{r linear model}
-fm_lm0 <- lm(rm ~ (V+Nb)^2,
-            data = carmet415M3_model)
+```{r multi_linear_model_con_interazioni}
+lm0 <- lm(kv ~ (Mo+Cr+Nb+Si)^2,
+            data = res431)
 
-fm_lm <- lm(rm ~ (V+Nb+P+Ni+Cu)^2,
-            data = carmet415M3_model)
+summary(lm0)
+anova(lm0)
 
-summary(fm_lm)
+dati_carico <- filter(res431, logical_col == TRUE)
+lm_carico <- lm(kv ~ (Mo+Cr+Nb+Si)^2,
+            data = dati_carico)
+
+summary(lm_carico)
+anova(lm_carico)
+
+
+dati_scarico <- filter(res431, logical_col == FALSE)
+lm_scarico <- lm(kv ~ (N2+Nb+Si)^2,
+            data = dati_scarico)
+
+summary(lm_scarico)
+anova(lm_scarico)
 
 ```
 
 testiamo il modello ad interazioni ridotte
 
-```{r  testi modello}
+```{python boxplot}
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
-fm_lm1 <- lm(rm ~ V+ Nb + P + Ni + Cu + V:Cu + Nb:P + Nb:Ni + Nb:Cu + Ni:P,
-            data = carmet415M3_model)
-
-
-summary(fm_lm1)
-```
-
-faccio una anova per i due modelli, con ipotesi nulla *i due modelli sono diversi*
-
-```{r anova}
-anova(fm_lm1,fm_lm,test='F')
-
-```
-
-verifico il modello
-
-```{r verifica}
-par(mfrow=c(2,2))
-plot(fm_lm1)
-par(mfrow=c(1,1))
-```
-
-plot residui VS singole variabili
-
-```{r residui}
-carmet415M3_model %>% 
-  select(V,Nb,P,Ni,Cu) %>% 
-  mutate(res=residuals(fm_lm1)) %>% 
-  pairs()
-  
-```
-griglia dei valori
-
-```{r grid}
-
-d <- carmet415M3
-
-d <- expand_grid(
-V = seq(min(d$V),max(d$V),length=4),
-Nb = seq(min(d$Nb),max(d$Nb),length=10),
-P = seq(min(d$P),max(d$P),length=4),
-Ni = seq(min(d$Ni),max(d$Ni),length=10),
-Cu = seq(min(d$Cu),max(d$Cu),length=4))
-
-
-d_prd <- predict(fm_lm1,d,interval='prediction') %>% 
-  as_tibble()
-
-d <- d %>% bind_cols(d_prd)
+plt.style.use('seaborn')
+df = pd.read_pickle('/data/res431/res431.pkl')
+df['status_forno'] = np.where(df['peso_batch_rinv2'] > 8000, 'carico', 'scarico')
+plt.figure()
+df.boxplot(by='status_forno',column='kv')
+plt.show()
+plt.style.use('default')
 
 ```
 
-plot variabili principali
+faccio una anova per i due modelli, con ipotesi nulla *i due modelli (carico, scarico) sono diversi*
 
-```{r dcasc}
-
-ggplot(d, aes(Nb, fit)) +
-  geom_smooth(aes(group =factor(P), color=factor(P)), method='lm', se=F) +
-  geom_point(aes(color=factor(P))) + 
-  facet_grid(Cu~V, labeller = label_both)
-
-```
-
-Test per Vincenzo
-
-```{r grid2}
-
-d <- carmet415M3
-
-d <- tibble(
-V = 0.10,
-Nb = 0.03,
-P = mean(d$P),
-Ni = 4.5,
-Cu = mean(d$Cu))
-
-
-d_prd <- predict(fm_lm1,d,interval='prediction') %>% 
-  as_tibble()
-
-d <- d %>% bind_cols(d_prd)
-
-d <- d %>% mutate(test=fit-970)
-
-d %>%  filter(abs(test)==min(abs(test)))
-```
+<!-- # ```{r anova} -->
+<!-- # anova(lm_carico,lm_scarico,test='F') -->
+<!-- #  -->
+<!-- # ``` -->
