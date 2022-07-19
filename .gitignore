@@ -6,3 +6,4 @@ doc/*.html
 *.Rproj
 doc/trash/*.html
 doc/07-conclusioni.Rmd
+doc/05-data-discovery_beta.Rmd
