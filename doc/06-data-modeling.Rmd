@@ -20,7 +20,7 @@ editor_options:
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE,
+knitr::opts_chunk$set(echo = FALSE,
                       warning = FALSE,
                       message = FALSE,
                       error = FALSE,
@@ -28,7 +28,11 @@ knitr::opts_chunk$set(echo = TRUE,
                       fig.width = 10,
                       collapse = TRUE,
                       cols.print=20)
+#clear 
 rm(list = ls(all.names = TRUE))
+#setting float as x.xx
+options(scipen = 999, digits = 3)
+#loading stuff
 require(dplyr)
 require(rlang)
 require(tidyr)
@@ -45,44 +49,33 @@ leggiamo i dati
 
 ```{r loading}
 res431 <- read_rds('/data/res431/res431.rds')
+
+# drop colonne non di interesse per l'analisi
+
+res431_model <- res431 %>% 
+  select(-c(data_ins,anno,marca,odp,sk,colata,colata_aod))
                        
 ```
 
 ```{r logica_peso_batch_rinv_2}
-logical_col <- res431$peso_batch_rinv2 > 8000
+logical_forno <- res431$peso_batch_rinv2 > 8000
+res431 <- cbind(res431,logical_forno)
 
-res431 <- cbind(res431,logical_col)
-
-
-```
-
-troviamo un modello lineare con le variabili indicate dall'albero considerando anche le interazioni di grado 2
-
-```{r multi_linear_model_con_interazioni}
-lm0 <- lm(kv ~ (Mo+Cr+Nb+Si)^2,
-            data = res431)
-
-summary(lm0)
-anova(lm0)
-
-dati_carico <- filter(res431, logical_col == TRUE)
-lm_carico <- lm(kv ~ (Mo+Cr+Nb+Si)^2,
-            data = dati_carico)
-
-summary(lm_carico)
-anova(lm_carico)
-
-
-dati_scarico <- filter(res431, logical_col == FALSE)
-lm_scarico <- lm(kv ~ (N2+Nb+Si)^2,
-            data = dati_scarico)
-
-summary(lm_scarico)
-anova(lm_scarico)
+conforme <- res431$kv > 50
+res431 <- cbind(res431,conforme)
 
 ```
 
-testiamo il modello ad interazioni ridotte
+# Analisi TT
+
+Investigando i TT, introduciamo una funzione logica per verificare se c'è un'influenza delle condizioni di carica del forno di secondo rinvenimento. Pertanto, viene adottata la seguente logica:
+
++ carico : se > 8t (valore TRUE)
++ scarico se inferiore (valore FALSE)
+
+In aggiunta, è stato posto un focus anche sulla tipologia di forno (GADDA1, GADDA2, GADDA3)
+
+Di seguito i boxplot:
 
 ```{python boxplot}
 import pandas as pd
@@ -92,16 +85,200 @@ import matplotlib.pyplot as plt
 plt.style.use('seaborn')
 df = pd.read_pickle('/data/res431/res431.pkl')
 df['status_forno'] = np.where(df['peso_batch_rinv2'] > 8000, 'carico', 'scarico')
+
 plt.figure()
 df.boxplot(by='status_forno',column='kv')
+plt.title('status carica forno rinv2')
+plt.show()
+
+plt.figure()
+df.boxplot(by=['forno_rinv2'],column='kv')
+plt.title('tipologia forno rinv2')
+
+plt.show()
+
+plt.figure()
+df.boxplot(by=['status_forno','forno_rinv2'],column='kv',rot='30')
+plt.title('status carica + tipologia forno rinv2')
 plt.show()
 plt.style.use('default')
+```
+
+```{python create_table_resumed}
+
+kv_resume = {'media': [df[df.status_forno=='scarico'].kv.mean(),df[df.status_forno=='carico'].kv.mean()], 'std_dev': [df[df.status_forno=='scarico'].kv.std(),df[df.status_forno=='carico'].kv.std()],'N':[df[df.status_forno=='scarico'].kv.count(),df[df.status_forno=='carico'].kv.count()],'status':['scarico','carico']}
+
+kv_resume = pd.DataFrame.from_dict(data=kv_resume,orient='columns')
+kv_resume['var_coeff'] = kv_resume.std_dev/kv_resume.media 
+kv_resume = kv_resume.set_index('status')
+
+
+# forno carico, GADDA1
+N_cg1 = df.loc[(df.status_forno == 'carico') & (df.forno_rinv2 == 'GADDA 1'),'kv'].count()
+mean_cg1 = df.loc[(df.status_forno == 'carico') & (df.forno_rinv2 == 'GADDA 1'),'kv'].mean()
+std_cg1 = df.loc[(df.status_forno == 'carico') & (df.forno_rinv2 == 'GADDA 1'),'kv'].std()
+
+# forno carico, GADDA2
+N_cg2 = df.loc[(df.status_forno == 'carico') & (df.forno_rinv2 == 'GADDA 2'),'kv'].count()
+mean_cg2 = df.loc[(df.status_forno == 'carico') & (df.forno_rinv2 == 'GADDA 2'),'kv'].mean()
+std_cg2 = df.loc[(df.status_forno == 'carico') & (df.forno_rinv2 == 'GADDA 2'),'kv'].std()
+
+# forno scarico, GADDA1
+N_sg1 = df.loc[(df.status_forno == 'scarico') & (df.forno_rinv2 == 'GADDA 1'),'kv'].count()
+mean_sg1 = df.loc[(df.status_forno == 'scarico') & (df.forno_rinv2 == 'GADDA 1'),'kv'].mean()
+std_sg1 = df.loc[(df.status_forno == 'scarico') & (df.forno_rinv2 == 'GADDA 1'),'kv'].std()
+
+# forno scarico, GADDA2
+N_sg2 = df.loc[(df.status_forno == 'scarico') & (df.forno_rinv2 == 'GADDA 2'),'kv'].count()
+mean_sg2 = df.loc[(df.status_forno == 'scarico') & (df.forno_rinv2 == 'GADDA 2'),'kv'].mean()
+std_sg2 = df.loc[(df.status_forno == 'scarico') & (df.forno_rinv2 == 'GADDA 2'),'kv'].std()
+
+kv_resume_2 = {'media':[mean_sg1,mean_sg2,mean_cg1,mean_cg2],
+                'std_dev': [std_sg1,std_sg2,std_cg1,std_cg2],
+                'N':[N_sg1,N_sg2,N_cg1,N_cg2],'status':['scarico - GADDA1','scarico - GADDA2','carico - GADDA1','carico - GADDA2']}
+                
+kv_resume_2 = pd.DataFrame.from_dict(data=kv_resume_2,orient='columns')
+kv_resume_2['var_coeff'] = kv_resume_2.std_dev/kv_resume_2.media 
+kv_resume_2 = kv_resume_2.set_index('status')
+
+
+# kv_carico = {'mean': , 'sdt_dev': df[df.status_forno=='carico'].kv.std(),'N':df[df.status_forno=='carico'].kv.count(),'status':'carico'}
+
 
 ```
 
-faccio una anova per i due modelli, con ipotesi nulla *i due modelli (carico, scarico) sono diversi*
+```{r table_rinv_2}
 
-<!-- # ```{r anova} -->
-<!-- # anova(lm_carico,lm_scarico,test='F') -->
+tabella <- py$kv_resume
+tabella_2 <- py$kv_resume_2
+
+cas_kable(tabella,'resumed per peso rinv 2')
+
+cas_kable(tabella_2,'resumed per peso rinv 2 e forni')
+
+
+```
+
+<!-- troviamo un modello lineare con le variabili indicate dall'albero considerando anche le interazioni di grado 2 -->
+
+<!-- # ```{r multi_linear_model_con_interazioni} -->
+<!-- # dati <- py$df -->
+<!-- # lm0 <- lm(kv ~ (status_forno + forno_rinv2)^2, -->
+<!-- #             data = dati) -->
+<!-- #  -->
+<!-- # summary(lm0) -->
+<!-- # anova(lm0) -->
+<!-- #  -->
+<!-- # # dati_carico <- filter(res431, logical_col == TRUE) -->
+<!-- # # lm_carico <- lm(kv ~ (Mo+Cr+Nb+Si)^2, -->
+<!-- # #             data = dati_carico) -->
+<!-- # #  -->
+<!-- # # summary(lm_carico) -->
+<!-- # # anova(lm_carico) -->
+<!-- # #  -->
+<!-- # #  -->
+<!-- # # dati_scarico <- filter(res431, logical_col == FALSE) -->
+<!-- # # lm_scarico <- lm(kv ~ (N2+Nb+Si)^2, -->
+<!-- # #             data = dati_scarico) -->
+<!-- # #  -->
+<!-- # # summary(lm_scarico) -->
+<!-- # # anova(lm_scarico) -->
 <!-- #  -->
 <!-- # ``` -->
+
+
+# distribuzioni di densità
+
+Distribuzioni della resilienza. Verrà conteggiata la % di non conformi per le due discriminatni (no prob condizionata). **In questa analisi verrà escluso tutto ciò che è passato al GADDA3**.
+
+
+```{r density_plot}
+
+
+ggplot(res431)+
+  geom_density(aes(kv,fill=logical_forno),alpha=.5) +
+  geom_vline(xintercept=50,
+             linetype="dashed",
+             color = "red4", 
+             size=1,
+             )
+# ggplot(kv_scarico)+
+#   geom_density(aes(kv),alpha=.5,fill="blue")
+
+res431_noG3 <- res431[res431$forno_rinv2 != 'GADDA 3', ] 
+ggplot(res431_noG3)+
+  geom_density(aes(kv,fill=forno_rinv2),alpha=.5) +
+  geom_vline(xintercept=50,
+           linetype="dashed",
+           color = "red4", 
+           size=1,
+           )
+
+```
+
+
+```{r statistica_conformi}
+
+kv_carico <- res431[res431$logical_forno == 'TRUE', ]
+n_conformi_carico <- sum(kv_carico$conforme == 'TRUE')
+n_carico_tot <- nrow(kv_carico)
+
+perc_conformi_carico <- n_conformi_carico/n_carico_tot*100
+
+kv_scarico <- res431[res431$logical_forno == 'FALSE', ] 
+n_conformi_scarico <- sum(kv_scarico$conforme == 'TRUE')
+n_scarico_tot <- nrow(kv_scarico)
+
+perc_conformi_scarico <- n_conformi_scarico/n_scarico_tot*100
+
+kv_G1 <- res431_noG3[res431_noG3$forno_rinv2 == 'GADDA 1', ]
+n_conformi_G1 <- sum(kv_G1$conforme == 'TRUE')
+n_G1_tot <- nrow(kv_G1)
+
+perc_conformi_G1 <- n_conformi_G1/n_G1_tot*100
+
+
+kv_G2 <- res431_noG3[res431_noG3$forno_rinv2 == 'GADDA 2', ]
+n_conformi_G2 <- sum(kv_G2$conforme == 'TRUE')
+n_G2_tot <- nrow(kv_G2)
+
+perc_conformi_G2 <- n_conformi_G2/n_G2_tot*100
+
+```
+
+la percentuale di conformi a forno *carico* è di `r perc_conformi_carico` 
+
+la percentuale di conformi a forno *scarico* è di `r perc_conformi_scarico` 
+
+la percentuale di conformi a forno *GADDA1* è di `r perc_conformi_G1` 
+
+la percentuale di conformi a forno *GADDA2* è di `r perc_conformi_G2` 
+
+```{rdensity_condizionata}
+
+ggplot(res431_noG3)+
+  geom_density(aes(kv,fill=conforme),alpha=.5) +
+  geom_vline(xintercept=50,
+           linetype="dashed",
+           color = "red4", 
+           size=1,
+           )
+
+```
+
+# plot coordinate parallelle
+
+```{r parallel_coord}
+
+require(GGally)
+
+#plotting
+
+ggparcoord(res431,
+           columns = 9:ncol(res431),
+           groupColumn = ncol(res431),
+           showPoints = TRUE,
+           # scale = 'std',
+           )
+
+```
