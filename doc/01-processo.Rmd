@@ -35,19 +35,19 @@ rm(list = ls(all.names = TRUE))
 
 # Il problema
 
-I risultati di *resilienza* che stiamo ottenendo sul *431/5* sono instabili e spesso fuori specifica (sotto il limite minimo di *50 J*). In caso di schede fuori specifica, la scheda viene ritrattata. 
+I risultati di *resilienza* che stiamo ottenendo sul *431/5* sono instabili e spesso fuori specifica (sotto il limite **minimo di 50 J**). In caso di schede fuori specifica, la scheda viene ritrattata. 
 
 ## workflow processo
 
-ACC produce billette 160x160. Le billette entrano successivamente al forno BENDOTTI (storicamente, set-point a 1100°C per garantire le caratteristiche meccaniche). A seguire, sbozzatura da quadro 160 a quadro 87. 
+ACC produce billette 160x160. Le billette entrano successivamente al forno BENDOTTI (storicamente, set-point a 1100°C per garantire le caratteristiche meccaniche). A seguire, sbozzatura da quadro 160 a sbozzato 87. 
 
 Gli sbozzati entrano quindi al treno LAM, dove vengono laminati a barre di diametro 47 dopodiché vengono raffreddati in placca (aria/acqua), tagliate a lunghezza circa costante e confezionate/stoccate in pallets prima di affrontare una campagna di trattamenti termici.
 
-I trattamenti termici previsti sono 2 cicli di rinvenimento (GADDA, forni a batch). La capacità di questi forni è di circa 15 tonnellate. 
+I trattamenti termici previsti (TT) sono 2 cicli di rinvenimento (GADDA, forni a batch). La capacità di questi forni è di circa 15 tonnellate. Per quanto riguarda i TT, **si fa l'ipotesi che i cicli siano privi di anomalie, e sempre in specifica**.  
 
 Il trattamento termico prevede 2 cicli di rinvenimento, così costituiti:
 
-+ rinvenimento 1
++ rinvenimento 1 (monostrato)
 
   + $T_{start}$ : 300 °C
   + rampa 100 °C/h fino a 500 °C
@@ -58,7 +58,7 @@ Il trattamento termico prevede 2 cicli di rinvenimento, così costituiti:
 
 + preparazione dei fasci di barre per il rinvenimento 2 (fascettatura)
 
-+ rinvenimento 2
++ rinvenimento 2 (in fasci)
 
   + $T_{start}$ : 300 °C
   + rampa 100 °C/h fino a 500 °C
@@ -70,3 +70,4 @@ Il trattamento termico prevede 2 cicli di rinvenimento, così costituiti:
 
 Il campionamento per la prova a trazione (Kv) è effettuato su una barra da cui vengono ricavati 3 provini. I valori di resilienza quindi sono 3 per ogni sk. 
 
+**Le schede ritrattate NON sono state considerate**

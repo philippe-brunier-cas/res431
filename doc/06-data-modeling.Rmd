@@ -254,7 +254,7 @@ la percentuale di conformi a forno *GADDA1* è di `r perc_conformi_G1`
 
 la percentuale di conformi a forno *GADDA2* è di `r perc_conformi_G2` 
 
-```{rdensity_condizionata}
+```{r density_condizionata}
 
 ggplot(res431_noG3)+
   geom_density(aes(kv,fill=conforme),alpha=.5) +
@@ -268,6 +268,8 @@ ggplot(res431_noG3)+
 
 # plot coordinate parallelle
 
+## chimica only
+
 ```{r parallel_coord}
 
 require(GGally)
@@ -275,10 +277,12 @@ require(GGally)
 #plotting
 
 ggparcoord(res431,
-           columns = 9:ncol(res431),
+           # columns = 9:ncol(res431),
+           columns = 13:29,
            groupColumn = ncol(res431),
            showPoints = TRUE,
-           # scale = 'std',
+           # missing = 'median',
+           scale = 'std',
            )
 
 ```
